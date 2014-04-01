@@ -84,7 +84,7 @@
     // Read user settings
     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
     self.wordsPerMinute = [[defaults valueForKey:@"WORDS_PER_MINUTE"] integerValue];
-    self.fontSize = [[defaults valueForKey:@"WORDS_PER_MINUTE"] floatValue];
+    self.fontSize = [[defaults valueForKey:@"FONT_SIZE"] floatValue];
 }
 
 - (void)viewWillAppear:(BOOL)animated
@@ -143,36 +143,17 @@
     if ([self.textToShow length]) {
         NSUInteger accentLetterPosition = [self calculateAccentLetterForWord:self.textToShow];
         
-        CGFloat accentLetterCenter = 0;
-        CGFloat textLength = 0;
+        CGFloat accentLetterCenter = [self centerAtPosition:accentLetterPosition forText:self.textToShow];
         
-        // Counting accent letter center position
-        for (int i = 0; i <= accentLetterPosition; i++) {
-            NSRange range = NSMakeRange(i, 1);
-            NSString *nextLetter = [self.textToShow substringWithRange:range];
-            if (i == accentLetterPosition) {
-                accentLetterCenter += [nextLetter sizeWithFont:self.font].width / 2;
-            } else {
-                accentLetterCenter += [nextLetter sizeWithFont:self.font].width;
-            }
-        }
+        CGSize textSize = [self sizeOfText:self.textToShow withFont:self.font];
         
-        // Counting word width
-        for (int i = 0; i < [self.textToShow length]; i++) {
-            NSRange range = NSMakeRange(i, 1);
-            NSString *nextLetter = [self.textToShow substringWithRange:range];
-            
-            textLength += [nextLetter sizeWithFont:self.font].width;
-        }
-        
-        CGSize textSize = [self.textToShow sizeWithFont:self.font];
         UILabel *textLabel = [UILabel new];
         [textLabel setBackgroundColor:[UIColor clearColor]];
         
         NSAttributedString *paintedString = [self paintAccentLetter:accentLetterPosition inWord:self.textToShow withFont:self.font];
         [textLabel setAttributedText:paintedString];
         
-        CGRect labelFrame = CGRectMake(0, 0, textLength, textSize.height);
+        CGRect labelFrame = CGRectMake(0, 0, textSize.width, textSize.height);
         [textLabel setFrame:labelFrame];
         
         CGPoint accentPoint = CGPointMake(accentLetterCenter, textSize.height / 2);
@@ -216,30 +197,12 @@
         
         for (int fontSize = MAX_FONT_SIZE; fontSize >= MIN_FONT_SIZE; fontSize -= 4) {
             localFont = [UIFont systemFontOfSize:fontSize];
-            CGFloat accentLetterCenter = 0;
-            CGFloat textLength = 0;
-            
-            // Counting accent letter center position
-            for (int i = 0; i <= accentLetterPosition; i++) {
-                NSRange range = NSMakeRange(i, 1);
-                NSString *nextLetter = [longestWord substringWithRange:range];
-                if (i == accentLetterPosition) {
-                    accentLetterCenter += [nextLetter sizeWithFont:localFont].width / 2;
-                } else {
-                    accentLetterCenter += [nextLetter sizeWithFont:localFont].width;
-                }
-            }
-            
-            // Counting word width
-            for (int i = 0; i < [longestWord length]; i++) {
-                NSRange range = NSMakeRange(i, 1);
-                NSString *nextLetter = [longestWord substringWithRange:range];
-                
-                textLength += [nextLetter sizeWithFont:localFont].width;
-            }
+
+            CGFloat accentLetterCenter = [self centerAtPosition:accentLetterPosition forText:self.textToShow];
+            CGSize textSize = [self sizeOfText:self.textToShow withFont:self.font];
             
             if ((((maxFrameWidth * self.targetView.horizontalAccentPosition) > accentLetterCenter) &&
-                 ((maxFrameWidth * (1 - self.targetView.horizontalAccentPosition)) > (textLength - accentLetterCenter))) ||
+                 ((maxFrameWidth * (1 - self.targetView.horizontalAccentPosition)) > (textSize.width - accentLetterCenter))) ||
                 fontSize <= MIN_FONT_SIZE) {
                 // Label size is correct;
                 return fontSize;
@@ -247,6 +210,39 @@
         }
     }
     return DEFAULT_FONT_SIZE;
+}
+
+- (CGSize)sizeOfText:(NSString *)text withFont:(UIFont *)font
+{
+    if ([text respondsToSelector:@selector(sizeWithAttributes:)]) {
+        return [self.textToShow sizeWithAttributes:@{NSFontAttributeName : self.font}];
+    } else {
+        return [self.textToShow sizeWithFont:self.font];
+    }
+}
+
+- (CGFloat)centerAtPosition:(int)position forText:(NSString *)text
+{
+    CGFloat accentLetterCenter;
+    // Counting accent letter center position
+    for (int i = 0; i <= position; i++) {
+        NSRange range = NSMakeRange(i, 1);
+        NSString *nextLetter = [self.textToShow substringWithRange:range];
+        if (i == position) {
+            if ([text respondsToSelector:@selector(sizeWithAttributes:)]) {
+                accentLetterCenter += [nextLetter sizeWithAttributes:@{NSFontAttributeName : self.font}].width / 2;
+            } else {
+                accentLetterCenter += [nextLetter sizeWithFont:self.font].width / 2;
+            }
+        } else {
+            if ([text respondsToSelector:@selector(sizeWithAttributes:)]) {
+                accentLetterCenter += [nextLetter sizeWithAttributes:@{NSFontAttributeName : self.font}].width;
+            } else {
+                accentLetterCenter += [nextLetter sizeWithFont:self.font].width;
+            }
+        }
+    }
+    return accentLetterCenter;
 }
 
 #pragma mark - Screen rotation
