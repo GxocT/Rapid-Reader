@@ -30,5 +30,6 @@
 
 - (void)reportFontSize:(CGFloat)size;
 - (void)reportReadingSpeed:(NSUInteger)speed;
+- (void)reportPause;
 
 @end

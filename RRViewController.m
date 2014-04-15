@@ -81,15 +81,17 @@
 {
     [super viewDidLoad];
     
-    // Read user settings
-    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-    self.wordsPerMinute = [[defaults valueForKey:@"WORDS_PER_MINUTE"] integerValue];
-    self.fontSize = [[defaults valueForKey:@"FONT_SIZE"] floatValue];
+    
 }
 
 - (void)viewWillAppear:(BOOL)animated
 {
     [super viewWillAppear:animated];
+    
+    // Read user settings
+    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+    self.wordsPerMinute = [[defaults valueForKey:@"WORDS_PER_MINUTE"] integerValue];
+    self.fontSize = [[defaults valueForKey:@"FONT_SIZE"] floatValue];
 
     if (self.dataSource) {
         self.textToShow = [self.dataSource currentWord];
@@ -109,8 +111,15 @@
 #pragma mark - Start/Pause reading
 - (void)startReading
 {
-    if (self.dataSource && !self.wordTimer) {
-        self.wordTimer = [NSTimer scheduledTimerWithTimeInterval:60.0f / self.wordsPerMinute target:self selector:@selector(selectNextWord) userInfo:nil repeats:YES];
+    if (self.dataSource) {
+        self.textToShow = [self.dataSource nextWord];
+        if (self.textToShow != nil) {
+            self.wordTimer = [NSTimer scheduledTimerWithTimeInterval:60.0f / self.wordsPerMinute target:self selector:@selector(startReading) userInfo:nil repeats:NO];
+        } else {
+            if ([self.delegate respondsToSelector:@selector(reportPause)]) {
+                [self.delegate reportPause];
+            }
+        }
     }
 }
 
@@ -135,6 +144,24 @@
 - (void)changeFont:(int)fontModification
 {
     self.fontSize += fontModification;
+}
+
+#pragma mark - Manual word progress
+- (void)previousWord
+{
+    if ([self.dataSource respondsToSelector:@selector(previousWord)])
+    {
+        [self pauseReading];
+        self.textToShow = [self.dataSource previousWord];
+    }
+}
+
+- (void)previousSentence
+{
+    if ([self.dataSource respondsToSelector:@selector(previousSentence)])
+    {
+        
+    }
 }
 
 #pragma mark - Making, painting and positioning label
@@ -221,9 +248,9 @@
     }
 }
 
-- (CGFloat)centerAtPosition:(int)position forText:(NSString *)text
+- (CGFloat)centerAtPosition:(NSInteger)position forText:(NSString *)text
 {
-    CGFloat accentLetterCenter;
+    CGFloat accentLetterCenter = 0;
     // Counting accent letter center position
     for (int i = 0; i <= position; i++) {
         NSRange range = NSMakeRange(i, 1);

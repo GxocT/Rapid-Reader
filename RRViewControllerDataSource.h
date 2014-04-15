@@ -35,5 +35,6 @@
 
 - (NSString *)longestWordWithFont:(UIFont *)font;
 - (NSString *)previousWord;
+- (NSString *)previousSentence;
 
 @end

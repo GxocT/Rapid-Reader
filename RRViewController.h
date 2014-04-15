@@ -43,4 +43,8 @@
 - (void)changeSpeed:(int)speedModification;
 - (void)changeFont:(int)fontModification;
 
+// Manual word progress
+- (void)previousWord;
+- (void)previousSentence;
+
 @end
